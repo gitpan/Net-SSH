@@ -9,7 +9,7 @@ use IPC::Open3;
 
 @ISA = qw(Exporter);
 @EXPORT_OK = qw( ssh issh ssh_cmd sshopen2 sshopen3 );
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 $DEBUG = 0;
 
@@ -35,10 +35,10 @@ Net::SSH - Perl extension for secure shell
 
 =head1 DESCRIPTION
 
-Simple wrappers around ssh commands.  For an all-perl implementation that does
-not require
-the system `ssh' command, see Net::SSH::Perl.
+Simple wrappers around ssh commands.
 
+For an all-perl implementation that does not require the system B<ssh> command,
+see L<Net::SSH::Perl> instead.
 
 =head1 SUBROUTINES
 
@@ -170,7 +170,7 @@ Ivan Kohler <ivan-netssh_pod@420.am>
 John Harrison <japh@in-ta.net> contributed an example for the documentation.
 
 Martin Langhoff <martin@cwa.co.nz> contributed the ssh_cmd command, and
-Jeff Raffo <jraffo@fix.net> updated it and took care of the 0.04 release.
+Jeff Finucane <jeff@cmh.net> updated it and took care of the 0.04 release.
 
 =head1 COPYRIGHT
 
@@ -189,7 +189,7 @@ Look at IPC::Session (also fsh)
 =head1 SEE ALSO
 
 For an all-perl implementation that does not require the system B<ssh> command,
-see L<Net::SSH::Perl>.
+see L<Net::SSH::Perl> instead.
 
 ssh-keygen(1), ssh(1), L<IO::File>, L<IPC::Open2>, L<IPC::Open3>
 

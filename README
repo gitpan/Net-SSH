@@ -1,4 +1,4 @@
-Net::SSH v0.04
+Net::SSH
 
 Copyright (c) 2002 Ivan Kohler.
 Copyright (c) 2002 Freeside Internet Services, LLC
@@ -31,5 +31,5 @@ A mailing list for users and developers is available.  Send a blank message to
 
 Ivan Kohler <ivan-netssh_readme@420.am>
 
-$Id: README,v 1.3 2002/02/15 19:49:54 ivan Exp $
+$Id: README,v 1.4 2002/02/16 18:26:31 ivan Exp $
 
