@@ -3,12 +3,13 @@ package Net::SSH;
 use strict;
 use vars qw($VERSION @ISA @EXPORT_OK $ssh $DEBUG);
 use Exporter;
+use IO::File;
 use IPC::Open2;
 use IPC::Open3;
 
 @ISA = qw(Exporter);
-@EXPORT_OK = qw( ssh issh sshopen2 sshopen3 );
-$VERSION = '0.03';
+@EXPORT_OK = qw( ssh issh ssh_cmd sshopen2 sshopen3 );
+$VERSION = '0.04';
 
 $DEBUG = 0;
 
@@ -26,13 +27,18 @@ Net::SSH - Perl extension for secure shell
 
   issh('user@hostname', $command);
 
+  ssh_cmd('user@hostname', $command);
+
   sshopen2('user@hostname', $reader, $writer, $command);
 
   sshopen3('user@hostname', $writer, $reader, $error, $command);
 
 =head1 DESCRIPTION
 
-Simple wrappers around ssh commands.
+Simple wrappers around ssh commands.  For an all-perl implementation that does
+not require
+the system `ssh' command, see Net::SSH::Perl.
+
 
 =head1 SUBROUTINES
 
@@ -66,6 +72,34 @@ sub issh {
   if ( &_yesno ) {
     system(@cmd);
   }
+}
+
+=item ssh_cmd [USER@]HOST, COMMAND [, ARGS ... ]
+
+Calls ssh in batch mode.  Throws a fatal error if data occurs on the command's
+STDERR.  Returns any data from the command's STDOUT.
+
+=cut
+
+sub ssh_cmd {
+  my($host, @command) = @_;
+
+  my $reader = IO::File->new();
+  my $writer = IO::File->new();
+  my $error  = IO::File->new();
+
+  sshopen3( $host, $reader, $writer, $error, @command ) or die $!;
+
+  local $/ = undef;
+  my $output_stream = <$writer>;
+  my $error_stream = <$error>;
+
+  if ( length $error_stream ) {
+    die "[Net:SSH::ssh_cmd] STDERR $error_stream";
+  }
+
+  return $output_stream;
+
 }
 
 =item sshopen2 [USER@]HOST, READER, WRITER, COMMAND [, ARGS ... ]
@@ -129,19 +163,19 @@ Q: My script is "leaking" ssh processes.
 A: See L<perlfaq8/"How do I avoid zombies on a Unix system">, L<IPC::Open2>,
 L<IPC::Open3> and L<perlfunc/waitpid>.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
 Ivan Kohler <ivan-netssh_pod@420.am>
 
-=head1 CREDITS
+John Harrison <japh@in-ta.net> contributed an example for the documentation.
 
- John Harrison <japh@in-ta.net> contributed an example for the documentation.
+Martin Langhoff <martin@cwa.co.nz> contributed the ssh_cmd command, and
+Jeff Raffo <jraffo@fix.net> updated it and took care of the 0.04 release.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2000 Ivan Kohler.
-Copyright (c) 2000 Silicon Interactive Software Design.
-Copyright (c) 2000 Freeside Internet Services, LLC
+Copyright (c) 2002 Ivan Kohler.
+Copyright (c) 2002 Freeside Internet Services, LLC
 All rights reserved.
 This program is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
@@ -154,7 +188,10 @@ Look at IPC::Session (also fsh)
 
 =head1 SEE ALSO
 
-ssh-keygen(1), ssh(1), L<IPC::Open2>, L<IPC::Open3>
+For an all-perl implementation that does not require the system B<ssh> command,
+see L<Net::SSH::Perl>.
+
+ssh-keygen(1), ssh(1), L<IO::File>, L<IPC::Open2>, L<IPC::Open3>
 
 =cut
 

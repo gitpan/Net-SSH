@@ -1,5 +1,9 @@
 Revision history for Perl extension Net::SSH.
 
+0.04  Fri Feb 15 14:05:06 2002
+	- added ssh_cmd from Martin Langhoff <martin@cwa.co.nz> with updates by
+	  Jeff Raffo <jraffo@fix.net>
+
 0.03  Wec Oct 24 03:49:06 2001
 	- current OpenSSH wants s/ /=/ in -o options
 	- more documentation updates
