@@ -1,7 +1,7 @@
 package Net::SSH;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT_OK $ssh $DEBUG);
+use vars qw($VERSION @ISA @EXPORT_OK $ssh $equalspace $DEBUG);
 use Exporter;
 use IO::File;
 use IPC::Open2;
@@ -9,7 +9,7 @@ use IPC::Open3;
 
 @ISA = qw(Exporter);
 @EXPORT_OK = qw( ssh issh ssh_cmd sshopen2 sshopen3 );
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 $DEBUG = 0;
 
@@ -28,6 +28,13 @@ Net::SSH - Perl extension for secure shell
   issh('user@hostname', $command);
 
   ssh_cmd('user@hostname', $command);
+  ssh_cmd( {
+    user => 'user',
+    host => 'host.name',
+    command => 'command',
+    args => [ '-arg1', '-arg2' ],
+    stdin_string => "string\n",
+  } );
 
   sshopen2('user@hostname', $reader, $writer, $command);
 
@@ -52,7 +59,8 @@ Calls ssh in batch mode.
 
 sub ssh {
   my($host, @command) = @_;
-  my @cmd = ($ssh, '-o', 'BatchMode=yes', $host, @command);
+  &_check_ssh_version unless defined $equalspace;
+  my @cmd = ($ssh, '-o', 'BatchMode'.$equalspace.'yes', $host, @command);
   warn "[Net::SSH::ssh] executing ". join(' ', @cmd). "\n"
     if $DEBUG;
   system(@cmd);
@@ -76,22 +84,46 @@ sub issh {
 
 =item ssh_cmd [USER@]HOST, COMMAND [, ARGS ... ]
 
+=item ssh_cmd OPTIONS_HASHREF
+
 Calls ssh in batch mode.  Throws a fatal error if data occurs on the command's
 STDERR.  Returns any data from the command's STDOUT.
+
+If using the hashref-style of passing arguments, possible keys are:
+
+  user (optional)
+  host (requried)
+  command (required)
+  args (optional, arrayref)
+  stdin_string (optional) - written to the command's STDIN
 
 =cut
 
 sub ssh_cmd {
-  my($host, @command) = @_;
+  my($host, $stdin_string, @command);
+  if ( ref($_[0]) ) {
+    my $opt = shift;
+    $host = $opt->{host};
+    $host = $opt->{user}. '@'. $host if exists $opt->{user};
+    @command = ( $opt->{command} );
+    push @command, @{ $opt->{args} } if exists $opt->{args};
+    $stdin_string = $opt->{stdin_string};
+  } else {
+    ($host, @command) = @_;
+    undef $stdin_string;
+  }
 
   my $reader = IO::File->new();
   my $writer = IO::File->new();
   my $error  = IO::File->new();
 
-  sshopen3( $host, $reader, $writer, $error, @command ) or die $!;
+  sshopen3( $host, $writer, $reader, $error, @command ) or die $!;
+
+  print $writer $stdin_string if defined $stdin_string;
+  close $writer;
 
   local $/ = undef;
-  my $output_stream = <$writer>;
+  my $output_stream = <$reader>;
   my $error_stream = <$error>;
 
   if ( length $error_stream ) {
@@ -110,7 +142,8 @@ Connects the supplied filehandles to the ssh process (in batch mode).
 
 sub sshopen2 {
   my($host, $reader, $writer, @command) = @_;
-  open2($reader, $writer, $ssh, '-o', 'BatchMode=yes', $host, @command);
+  &_check_ssh_version unless defined $equalspace;
+  open2($reader, $writer, $ssh, '-o', 'BatchMode'.$equalspace.'yes', $host, @command);
 }
 
 =item sshopen3 HOST, WRITER, READER, ERROR, COMMAND [, ARGS ... ]
@@ -121,13 +154,28 @@ Connects the supplied filehandles to the ssh process (in batch mode).
 
 sub sshopen3 {
   my($host, $writer, $reader, $error, @command) = @_;
-  open3($writer, $reader, $error, $ssh, '-o', 'BatchMode=yes', $host, @command);
+  &_check_ssh_version unless defined $equalspace;
+  open3($writer, $reader, $error, $ssh, '-o', 'BatchMode'.$equalspace.'yes', $host, @command);
 }
 
 sub _yesno {
   print "Proceed [y/N]:";
   my $x = scalar(<STDIN>);
   $x =~ /^y/i;
+}
+
+sub _check_ssh_version {
+  my $reader = IO::File->new();
+  my $writer = IO::File->new();
+  my $error  = IO::File->new();
+  open3($writer, $reader, $error, $ssh, '-V');
+  my $ssh_version = <$error>;
+  chomp($ssh_version);
+  if ( $ssh_version =~ /.*OpenSSH[-|_](\w+)\./ && $1 == 1 ) {
+    $equalspace = " ";
+  } else {
+    $equalspace = "=";
+  }
 }
 
 =back
@@ -171,6 +219,9 @@ John Harrison <japh@in-ta.net> contributed an example for the documentation.
 
 Martin Langhoff <martin@cwa.co.nz> contributed the ssh_cmd command, and
 Jeff Finucane <jeff@cmh.net> updated it and took care of the 0.04 release.
+
+Anthony Awtrey <tony@awtrey.com> contributed a fix for those still using
+OpenSSH v1.
 
 =head1 COPYRIGHT
 

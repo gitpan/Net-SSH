@@ -1,6 +1,12 @@
 Revision history for Perl extension Net::SSH.
 
-0.05  unreleased
+0.06  Wed Jul 3 07:52:15 2002
+	- patch from Anthony Awtrey <tony@awtrey.com> to use s/=/ / in -o
+	  options again if OpenSSH v1 is detected
+	- fix patch to detect at runtime, not compiletime
+	- update ssh_cmd to accept named params & stdin_string
+
+0.05  Fri Feb 15 15:46:00 2002
 	- brainfart mis-credit
 
 0.04  Fri Feb 15 14:05:06 2002
