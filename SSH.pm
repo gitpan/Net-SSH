@@ -3,13 +3,15 @@ package Net::SSH;
 use strict;
 use vars qw($VERSION @ISA @EXPORT_OK $ssh $equalspace $DEBUG @ssh_options);
 use Exporter;
+use POSIX ":sys_wait_h";
 use IO::File;
+use IO::Select;
 use IPC::Open2;
 use IPC::Open3;
 
 @ISA = qw(Exporter);
 @EXPORT_OK = qw( ssh issh ssh_cmd sshopen2 sshopen3 );
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 $DEBUG = 0;
 
@@ -117,18 +119,37 @@ sub ssh_cmd {
   my $writer = IO::File->new();
   my $error  = IO::File->new();
 
-  sshopen3( $host, $writer, $reader, $error, @command ) or die $!;
+  my $pid = sshopen3( $host, $writer, $reader, $error, @command ) or die $!;
 
   print $writer $stdin_string if defined $stdin_string;
   close $writer;
 
-  local $/ = undef;
-  my $output_stream = <$reader>;
-  my $error_stream = <$error>;
+  my $select = new IO::Select;
+  foreach ( $reader, $error ) { $select->add($_); }
 
-  if ( length $error_stream ) {
-    die "[Net:SSH::ssh_cmd] STDERR $error_stream";
+  my($output_stream, $error_stream) = ('', '');
+  while ( $select->count ) {
+    my @handles = $select->can_read;
+    foreach my $handle ( @handles ) {
+      my $buffer = '';
+      my $bytes = sysread($handle, $buffer, 4096);
+      if ( !defined($bytes) ) {
+        waitpid($pid, WNOHANG);
+        die "[Net::SSH::ssh_cmd] $!"
+      };
+      $select->remove($handle) if !$bytes;
+      if ( $handle eq $reader ) {
+        $output_stream .= $buffer;
+      } elsif ( $handle eq $error ) {
+        $error_stream  .= $buffer;
+      }
+    }
+
   }
+
+  waitpid($pid, WNOHANG);
+
+  die "$error_stream" if length($error_stream);
 
   return $output_stream;
 
@@ -230,7 +251,7 @@ OpenSSH v1.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2002 Ivan Kohler.
+Copyright (c) 2004 Ivan Kohler.
 Copyright (c) 2002 Freeside Internet Services, LLC
 All rights reserved.
 This program is free software; you can redistribute it and/or modify it under
