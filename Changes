@@ -1,5 +1,8 @@
 Revision history for Perl extension Net::SSH.
 
+0.07  Mon Aug 26 02:53:26 2002
+	- turn on -T to quiet pseudo-terminal warnings on OpenSSH v2 or later
+
 0.06  Wed Jul 3 07:52:15 2002
 	- patch from Anthony Awtrey <tony@awtrey.com> to use s/=/ / in -o
 	  options again if OpenSSH v1 is detected

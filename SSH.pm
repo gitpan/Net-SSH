@@ -1,7 +1,7 @@
 package Net::SSH;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT_OK $ssh $equalspace $DEBUG);
+use vars qw($VERSION @ISA @EXPORT_OK $ssh $equalspace $DEBUG @ssh_options);
 use Exporter;
 use IO::File;
 use IPC::Open2;
@@ -9,7 +9,7 @@ use IPC::Open3;
 
 @ISA = qw(Exporter);
 @EXPORT_OK = qw( ssh issh ssh_cmd sshopen2 sshopen3 );
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 $DEBUG = 0;
 
@@ -59,8 +59,8 @@ Calls ssh in batch mode.
 
 sub ssh {
   my($host, @command) = @_;
-  &_check_ssh_version unless defined $equalspace;
-  my @cmd = ($ssh, '-o', 'BatchMode'.$equalspace.'yes', $host, @command);
+  @ssh_options = &_ssh_options unless @ssh_options;
+  my @cmd = ($ssh, @ssh_options, $host, @command);
   warn "[Net::SSH::ssh] executing ". join(' ', @cmd). "\n"
     if $DEBUG;
   system(@cmd);
@@ -142,8 +142,8 @@ Connects the supplied filehandles to the ssh process (in batch mode).
 
 sub sshopen2 {
   my($host, $reader, $writer, @command) = @_;
-  &_check_ssh_version unless defined $equalspace;
-  open2($reader, $writer, $ssh, '-o', 'BatchMode'.$equalspace.'yes', $host, @command);
+  @ssh_options = &_ssh_options unless @ssh_options;
+  open2($reader, $writer, $ssh, @ssh_options, $host, @command);
 }
 
 =item sshopen3 HOST, WRITER, READER, ERROR, COMMAND [, ARGS ... ]
@@ -154,8 +154,8 @@ Connects the supplied filehandles to the ssh process (in batch mode).
 
 sub sshopen3 {
   my($host, $writer, $reader, $error, @command) = @_;
-  &_check_ssh_version unless defined $equalspace;
-  open3($writer, $reader, $error, $ssh, '-o', 'BatchMode'.$equalspace.'yes', $host, @command);
+  @ssh_options = &_ssh_options unless @ssh_options;
+  open3($writer, $reader, $error, $ssh, @ssh_options, $host, @command);
 }
 
 sub _yesno {
@@ -164,7 +164,7 @@ sub _yesno {
   $x =~ /^y/i;
 }
 
-sub _check_ssh_version {
+sub _ssh_options {
   my $reader = IO::File->new();
   my $writer = IO::File->new();
   my $error  = IO::File->new();
@@ -176,6 +176,11 @@ sub _check_ssh_version {
   } else {
     $equalspace = "=";
   }
+  my @options = ( '-o', 'BatchMode'.$equalspace.'yes' );
+  if ( $ssh_version =~ /.*OpenSSH[-|_](\w+)\./ && $1 > 1 ) {
+    unshift @options, '-T';
+  }
+  @options;
 }
 
 =back
