@@ -1,5 +1,9 @@
 Revision history for Perl extension Net::SSH.
 
+0.03  Wec Oct 24 03:49:06 2001
+	- current OpenSSH wants s/ /=/ in -o options
+	- more documentation updates
+
 0.02  Sat Nov 25 22:44:21 2000
 	- documentation updates
 

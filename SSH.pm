@@ -1,14 +1,16 @@
 package Net::SSH;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT_OK $ssh);
+use vars qw($VERSION @ISA @EXPORT_OK $ssh $DEBUG);
 use Exporter;
 use IPC::Open2;
 use IPC::Open3;
 
 @ISA = qw(Exporter);
 @EXPORT_OK = qw( ssh issh sshopen2 sshopen3 );
-$VERSION = '0.02';
+$VERSION = '0.03';
+
+$DEBUG = 0;
 
 $ssh = "ssh";
 
@@ -26,7 +28,7 @@ Net::SSH - Perl extension for secure shell
 
   sshopen2('user@hostname', $reader, $writer, $command);
 
-  sshopen3('user@hostname', $reader, $writer, $error, $command);
+  sshopen3('user@hostname', $writer, $reader, $error, $command);
 
 =head1 DESCRIPTION
 
@@ -44,7 +46,9 @@ Calls ssh in batch mode.
 
 sub ssh {
   my($host, @command) = @_;
-  my @cmd = ($ssh, '-o', 'BatchMode yes', $host, @command);
+  my @cmd = ($ssh, '-o', 'BatchMode=yes', $host, @command);
+  warn "[Net::SSH::ssh] executing ". join(' ', @cmd). "\n"
+    if $DEBUG;
   system(@cmd);
 }
 
@@ -72,7 +76,7 @@ Connects the supplied filehandles to the ssh process (in batch mode).
 
 sub sshopen2 {
   my($host, $reader, $writer, @command) = @_;
-  open2($reader, $writer, $ssh, '-o', 'Batchmode yes', $host, @command);
+  open2($reader, $writer, $ssh, '-o', 'BatchMode=yes', $host, @command);
 }
 
 =item sshopen3 HOST, WRITER, READER, ERROR, COMMAND [, ARGS ... ]
@@ -83,7 +87,7 @@ Connects the supplied filehandles to the ssh process (in batch mode).
 
 sub sshopen3 {
   my($host, $writer, $reader, $error, @command) = @_;
-  open3($writer, $reader, $error, $ssh, '-o', 'Batchmode yes', $host, @command);
+  open3($writer, $reader, $error, $ssh, '-o', 'BatchMode=yes', $host, @command);
 }
 
 sub _yesno {
@@ -113,6 +117,18 @@ sub _yesno {
   close(READER);
   close(WRITER);
 
+=head1 FREQUENTLY ASKED QUESTIONS
+
+Q: How do you supply a password to connect with ssh within a perl script
+using the Net::SSH module?
+
+A: You don't.  Use RSA or DSA keys.  See the ssh-keygen(1) manpage.
+
+Q: My script is "leaking" ssh processes.
+
+A: See L<perlfaq8/"How do I avoid zombies on a Unix system">, L<IPC::Open2>,
+L<IPC::Open3> and L<perlfunc/waitpid>.
+
 =head1 AUTHOR
 
 Ivan Kohler <ivan-netssh_pod@420.am>
@@ -120,6 +136,15 @@ Ivan Kohler <ivan-netssh_pod@420.am>
 =head1 CREDITS
 
  John Harrison <japh@in-ta.net> contributed an example for the documentation.
+
+=head1 COPYRIGHT
+
+Copyright (c) 2000 Ivan Kohler.
+Copyright (c) 2000 Silicon Interactive Software Design.
+Copyright (c) 2000 Freeside Internet Services, LLC
+All rights reserved.
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =head1 BUGS
 
@@ -129,7 +154,7 @@ Look at IPC::Session (also fsh)
 
 =head1 SEE ALSO
 
-ssh(1), L<IPC::Open2>, L<IPC::Open3>
+ssh-keygen(1), ssh(1), L<IPC::Open2>, L<IPC::Open3>
 
 =cut
 
