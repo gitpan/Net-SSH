@@ -1,5 +1,10 @@
 Revision history for Perl extension Net::SSH.
 
+0.09  Wed May 14 11:42:46 PDT 2008
+        - Add links to the more current stuff on CPAN.
+        - Documentation patch about ssh-keygen from terrence brannon
+          <tbone@directsynergy.com>
+
 0.08  Thu Feb 12 16:44:36 2004
 	- replace ssh_cmd blocking read of STDOUT then STDERR with IO::Select
 
